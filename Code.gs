@@ -1,8 +1,8 @@
 <!-- START OF FILE: Code.gs -->
-// Version: 1.2.5
-// Date: 2025-06-20 21:15 
+// Version: 1.2.6
+// Date: 2025-06-20 21:45 
 // Author: Rolland MELET & AI Senior Coder
-// Description: Ajout de la possibilité de spécifier un dossier de destination pour les PDF générés (cellule B10).
+// Description: Amélioration du message de succès avec un lien cliquable vers le PDF et le dossier de destination.
 
 // ========================================
 // MENU PERSONNALISÉ GOOGLE SHEETS
@@ -97,11 +97,44 @@ function genererEtiquettes() {
     }
 
     // 6. Message de succès
-    const message = `✅ PDF d'étiquettes généré !\n\nSérie: ${parametres.serie}\nNuméros: ${formatNumero(parametres.numeroDebut)} à ${formatNumero(parametres.numeroDebut + (parametres.nbPages * 5) - 1)}\nPages: ${parametres.nbPages}\n\n📁 Fichier sauvé dans le même dossier que votre template\n\n🖨️ Prêt à imprimer directement !`;
-    
-    console.log("Affichage du message de succès");
-    SpreadsheetApp.getUi().alert(message);
-    
+    const pdfUrl = fichiersGeneres[0].url;
+    const pdfName = fichiersGeneres[0].nom;
+    const dossier = creerDossierSiNecessaire(parametres); // Récupère le dossier pour obtenir son URL
+    const dossierUrl = dossier.getUrl();
+    const dossierName = dossier.getName();
+
+    const htmlMessage = `
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 14px; }
+        a { color: #1a73e8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .button {
+          display: inline-block;
+          padding: 10px 20px;
+          font-size: 16px;
+          font-weight: bold;
+          color: #fff;
+          background-color: #4CAF50;
+          border: none;
+          border-radius: 5px;
+          text-align: center;
+          cursor: pointer;
+        }
+        .button:hover { background-color: #45a049; }
+      </style>
+      <h2>✅ PDF d'étiquettes généré !</h2>
+      <p>
+        <b>Série:</b> ${parametres.serie}<br>
+        <b>Numéros:</b> ${formatNumero(parametres.numeroDebut)} à ${formatNumero(parametres.numeroDebut + (parametres.nbPages * 5) - 1)}<br>
+        <b>Pages:</b> ${parametres.nbPages}
+      </p>
+      <p>Le fichier <b><a href="${pdfUrl}" target="_blank" title="Cliquez pour ouvrir le PDF">${pdfName}</a></b> a été sauvegardé dans le dossier :<br><b><a href="${dossierUrl}" target="_blank" title="Cliquez pour ouvrir le dossier">${dossierName}</a></b></p>
+      <br><a href="${pdfUrl}" target="_blank" class="button">Ouvrir le PDF</a>`;
+
+    const htmlOutput = HtmlService.createHtmlOutput(htmlMessage).setWidth(450).setHeight(300);
+    console.log("Affichage du message de succès avec lien cliquable.");
+    SpreadsheetApp.getUi().showModalDialog(htmlOutput, "Génération Réussie");
+
     console.log("=== FIN GÉNÉRATION RÉUSSIE ===");
     return fichiersGeneres;
     
