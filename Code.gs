@@ -1,10 +1,8 @@
 <!-- START OF FILE: Code.gs -->
-
-// Version: 1.1.0
-// Date: 2025-06-20 12:00
-// Author: Rolland MELET
-// Description: Refactorisation pour isoler la logique de génération Docs dans une fonction dédiée (_genererEtiquettesDepuisDoc) 
-// et transformer genererEtiquettes en dispatcher. Prépare l'ajout du support pour Google Slides.
+// Version: 1.2.1
+// Date: 2025-06-20 14:50
+// Author: Rolland MELET & AI Senior Coder
+// Description: Ajout de la série 'TEST' à des fins de développement et de test.
 
 // ========================================
 // MENU PERSONNALISÉ GOOGLE SHEETS
@@ -56,8 +54,8 @@ function genererEtiquettes() {
     const templateId = sheet.getRange('B8').getValue();
     
     // 2. Validation
-    if (!['ENVELOPPE', 'TOIT', 'DALLE'].includes(serie)) {
-      throw new Error('Série doit être : ENVELOPPE, TOIT ou DALLE');
+    if (!['ENVELOPPE', 'TOIT', 'DALLE', 'TEST'].includes(serie)) {
+      throw new Error('Série doit être : ENVELOPPE, TOIT, DALLE ou TEST');
     }
     if (numeroDebut < 1 || nbPages < 1) {
       throw new Error('N° début et Nb pages doivent être >= 1');
@@ -78,7 +76,7 @@ function genererEtiquettes() {
     console.log(`Template ID: ${parametres.templateId}`);
 
     // Pour l'instant, on appelle directement la fonction pour Google Docs.
-    // Plus tard, nous ajouterons une condition ici pour appeler la fonction pour Slides.
+    // En Phase 3, nous ajouterons une condition ici pour appeler la fonction pour Slides.
     const fichiersGeneres = _genererEtiquettesDepuisDoc(parametres);
 
     // 6. Message de succès
@@ -112,15 +110,12 @@ function genererEtiquettes() {
 function _genererEtiquettesDepuisDoc(parametres) {
   console.log("-> Exécution de la logique de génération pour Google Docs...");
   
-  // 3. Date au format français
   const maintenant = new Date();
   const dateFormatee = formatDateFrancais(maintenant);
   console.log(`Date: ${dateFormatee}`);
     
-  // 4. Créer le dossier de destination (même que le template)
   const dossier = creerDossierSiNecessaire(parametres.templateId);
   
-  // 5. Générer un seul document multi-pages
   console.log("--- Création du document multi-pages ---");
   
   const premierNum = formatNumero(parametres.numeroDebut);
@@ -133,11 +128,8 @@ function _genererEtiquettesDepuisDoc(parametres) {
     console.log(`--- Création page ${page + 1}/${parametres.nbPages} ---`);
     const baseNum = parametres.numeroDebut + (page * 5);
     const numeros = [
-      formatNumero(baseNum),
-      formatNumero(baseNum + 1),
-      formatNumero(baseNum + 2),
-      formatNumero(baseNum + 3),
-      formatNumero(baseNum + 4)
+      formatNumero(baseNum), formatNumero(baseNum + 1), formatNumero(baseNum + 2),
+      formatNumero(baseNum + 3), formatNumero(baseNum + 4)
     ];
     
     const templateDoc = DriveApp.getFileById(parametres.templateId);
@@ -190,6 +182,77 @@ function _genererEtiquettesDepuisDoc(parametres) {
   
   return [{ url: pdfFile.getUrl(), nom: pdfFile.getName() }];
 }
+
+/**
+ * Génère un PDF multi-pages à partir d'un template Google Slides.
+ * @param {object} parametres - L'objet contenant la configuration (serie, numeroDebut, nbPages, templateId).
+ * @returns {Array<object>} Un tableau d'objets représentant les fichiers générés.
+ * @private
+ */
+function _genererEtiquettesDepuisSlide(parametres) {
+  console.log("-> Exécution de la logique de génération pour Google Slides...");
+  
+  const maintenant = new Date();
+  const dateFormatee = formatDateFrancais(maintenant);
+  console.log(`Date: ${dateFormatee}`);
+  
+  const dossier = creerDossierSiNecessaire(parametres.templateId);
+  
+  const premierNum = formatNumero(parametres.numeroDebut);
+  const dernierNum = formatNumero(parametres.numeroDebut + (parametres.nbPages * 5) - 1);
+  const nomFichier = `Etiquettes_${parametres.serie}_${premierNum}-${dernierNum}_${dateFormatee.replace(/\//g, '-')}`;
+  
+  // 1. Copier le template de présentation
+  const templateSlideFile = DriveApp.getFileById(parametres.templateId);
+  const presentationCopieFile = templateSlideFile.makeCopy(nomFichier + '_temp', dossier);
+  const presentation = SlidesApp.openById(presentationCopieFile.getId());
+  
+  // 2. Le template est supposé n'avoir qu'une seule diapositive
+  const slideTemplate = presentation.getSlides()[0];
+  if (!slideTemplate) {
+    throw new Error("Le template Google Slides ne contient aucune diapositive !");
+  }
+
+  // 3. Générer les pages en dupliquant la diapositive du template
+  for (let page = 0; page < parametres.nbPages; page++) {
+    console.log(`--- Création page (diapositive) ${page + 1}/${parametres.nbPages} ---`);
+    const baseNum = parametres.numeroDebut + (page * 5);
+    const numeros = [
+      formatNumero(baseNum), formatNumero(baseNum + 1), formatNumero(baseNum + 2),
+      formatNumero(baseNum + 3), formatNumero(baseNum + 4)
+    ];
+    
+    // Dupliquer la diapositive du template pour chaque nouvelle page
+    const nouvelleSlide = presentation.insertSlide(presentation.getSlides().length, slideTemplate);
+    
+    // Remplacer les placeholders sur la NOUVELLE diapositive
+    nouvelleSlide.replaceAllText('{{SERIE}}', parametres.serie);
+    nouvelleSlide.replaceAllText('{{NUMERO1}}', numeros[0]);
+    nouvelleSlide.replaceAllText('{{NUMERO2}}', numeros[1]);
+    nouvelleSlide.replaceAllText('{{NUMERO3}}', numeros[2]);
+    nouvelleSlide.replaceAllText('{{NUMERO4}}', numeros[3]);
+    nouvelleSlide.replaceAllText('{{NUMERO5}}', numeros[4]);
+    nouvelleSlide.replaceAllText('{{DateJour}}', dateFormatee);
+  }
+  
+  // 4. Supprimer la diapositive originale du template (la première)
+  presentation.getSlides()[0].remove();
+  
+  // 5. Sauvegarder la présentation et la convertir en PDF
+  presentation.saveAndClose();
+  console.log("Conversion en PDF...");
+  const pdfBlob = presentationCopieFile.getAs('application/pdf');
+  pdfBlob.setName(nomFichier + '.pdf');
+  const pdfFile = dossier.createFile(pdfBlob);
+  console.log(`PDF multi-pages créé: ${pdfFile.getUrl()}`);
+
+  // 6. Supprimer la présentation temporaire
+  console.log("Suppression de la présentation temporaire...");
+  presentationCopieFile.setTrashed(true);
+  
+  return [{ url: pdfFile.getUrl(), nom: pdfFile.getName() }];
+}
+
 
 // ========================================
 // FONCTIONS UTILITAIRES ET DE TEST
