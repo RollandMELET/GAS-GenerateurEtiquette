@@ -28,7 +28,7 @@ Développé pour: 360SmartConnect
 
 Fonctionnalités:
 ✅ Génération automatique d'étiquettes AGIPA 119013
-✅ Support 3 séries: ENVELOPPE, TOIT, DALLE
+✅ Support 4 séries: ENVELOPPE, TOIT, DALLE, TEST
 ✅ Export PDF prêt à imprimer
 ✅ Sauvegarde dans le même dossier que le template
 
