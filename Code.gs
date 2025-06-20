@@ -51,7 +51,9 @@ function genererEtiquettes() {
     const serie = sheet.getRange('B2').getValue() || 'ENVELOPPE';
     const numeroDebut = parseInt(sheet.getRange('B3').getValue()) || 1;
     const nbPages = parseInt(sheet.getRange('B4').getValue()) || 1;
-    const templateId = sheet.getRange('B8').getValue();
+    const nomTemplate = sheet.getRange('B5').getValue().toString().trim(); // Nouveau: Nom du template
+    const templateId = sheet.getRange('B8').getValue().toString().trim();
+    const typeTemplate = sheet.getRange('B9').getValue().toString().trim(); // Nouveau: Type de template
     
     // 2. Validation
     if (!['ENVELOPPE', 'TOIT', 'DALLE', 'TEST'].includes(serie)) {
@@ -60,8 +62,14 @@ function genererEtiquettes() {
     if (numeroDebut < 1 || nbPages < 1) {
       throw new Error('N° début et Nb pages doivent être >= 1');
     }
-    if (!templateId || templateId.toString().trim() === '') {
+    if (!templateId) {
       throw new Error('ID du template manquant dans la cellule B8');
+    }
+    if (!typeTemplate) {
+      throw new Error('Type de template manquant dans la cellule B9. Doit être "Google Doc" ou "Google Slide".');
+    }
+    if (typeTemplate !== 'Google Doc' && typeTemplate !== 'Google Slide') {
+      throw new Error('Type de template invalide en B9. Doit être "Google Doc" ou "Google Slide".');
     }
 
     // Regrouper les paramètres dans un objet pour les passer aux fonctions de génération
@@ -69,15 +77,22 @@ function genererEtiquettes() {
       serie: serie,
       numeroDebut: numeroDebut,
       nbPages: nbPages,
-      templateId: templateId
+      templateId: templateId,
+      nomTemplate: nomTemplate, // Ajout du nom du template aux paramètres
+      typeTemplate: typeTemplate // Ajout du type de template aux paramètres
     };
     
-    console.log(`Paramètres: série=${parametres.serie}, numeroDebut=${parametres.numeroDebut}, nbPages=${parametres.nbPages}`);
-    console.log(`Template ID: ${parametres.templateId}`);
+    console.log(`Paramètres: série=${parametres.serie}, numeroDebut=${parametres.numeroDebut}, nbPages=${parametres.nbPages}, nomTemplate=${parametres.nomTemplate}, typeTemplate=${parametres.typeTemplate}, templateId=${parametres.templateId}`);
 
-    // Pour l'instant, on appelle directement la fonction pour Google Docs.
-    // En Phase 3, nous ajouterons une condition ici pour appeler la fonction pour Slides.
-    const fichiersGeneres = _genererEtiquettesDepuisDoc(parametres);
+    let fichiersGeneres;
+    if (parametres.typeTemplate === 'Google Doc') {
+      fichiersGeneres = _genererEtiquettesDepuisDoc(parametres);
+    } else if (parametres.typeTemplate === 'Google Slide') {
+      fichiersGeneres = _genererEtiquettesDepuisSlide(parametres);
+    } else {
+      // Cette erreur est déjà gérée par la validation plus haut, mais par sécurité :
+      throw new Error('Type de template non supporté : ' + parametres.typeTemplate);
+    }
 
     // 6. Message de succès
     const message = `✅ PDF d'étiquettes généré !\n\nSérie: ${parametres.serie}\nNuméros: ${formatNumero(parametres.numeroDebut)} à ${formatNumero(parametres.numeroDebut + (parametres.nbPages * 5) - 1)}\nPages: ${parametres.nbPages}\n\n📁 Fichier sauvé dans le même dossier que votre template\n\n🖨️ Prêt à imprimer directement !`;
@@ -287,16 +302,29 @@ function testerConfiguration() {
   console.log("=== TEST DE CONFIGURATION ===");
   try {
     const sheet = SpreadsheetApp.getActiveSheet();
-    const templateId = sheet.getRange('B8').getValue();
-    if (!templateId || templateId.toString().trim() === '') {
+    const templateId = sheet.getRange('B8').getValue().toString().trim();
+    const typeTemplate = sheet.getRange('B9').getValue().toString().trim();
+
+    if (!templateId) {
       throw new Error('ID du template manquant dans la cellule B8');
     }
-    // Pour l'instant, on ne teste que pour Doc. Sera adapté en phase 3.
-    const templateDoc = DriveApp.getFileById(templateId);
-    console.log(`Template trouvé: ${templateDoc.getName()}`);
-    console.log(`Template ID: ${templateId}`);
-    
-    SpreadsheetApp.getUi().alert(`✅ Configuration OK - Le script peut accéder au template.`);
+    if (!typeTemplate) {
+      throw new Error('Type de template manquant dans la cellule B9. Doit être "Google Doc" ou "Google Slide".');
+    }
+
+    let templateFile;
+    if (typeTemplate === 'Google Doc') {
+      templateFile = DriveApp.getFileById(templateId);
+      DocumentApp.openById(templateId); // Tente d'ouvrir pour vérifier l'accès et le type
+      console.log(`Template Google Doc trouvé: ${templateFile.getName()}`);
+    } else if (typeTemplate === 'Google Slide') {
+      templateFile = DriveApp.getFileById(templateId);
+      SlidesApp.openById(templateId); // Tente d'ouvrir pour vérifier l'accès et le type
+      console.log(`Template Google Slide trouvé: ${templateFile.getName()}`);
+    } else {
+      throw new Error('Type de template invalide en B9. Doit être "Google Doc" ou "Google Slide".');
+    }
+    SpreadsheetApp.getUi().alert(`✅ Configuration OK.\nType: ${typeTemplate}\nTemplate: ${templateFile.getName()}\nID: ${templateId}\nLe script peut accéder au template.`);
   } catch (error) {
     console.error("❌ Erreur de configuration:", error.toString());
     SpreadsheetApp.getUi().alert(`❌ Problème détecté:\n\n${error.toString()}`);
