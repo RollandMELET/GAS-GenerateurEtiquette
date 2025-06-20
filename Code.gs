@@ -1,8 +1,8 @@
 <!-- START OF FILE: Code.gs -->
-// Version: 1.2.6
-// Date: 2025-06-20 21:45 
+// Version: 2.0.0
+// Date: 2025-06-20 22:30 
 // Author: Rolland MELET & AI Senior Coder
-// Description: Amélioration du message de succès avec un lien cliquable vers le PDF et le dossier de destination.
+// Description: Version finale 2.0.0 - Support Google Slides, dossier de destination personnalisable, message de succès interactif.
 
 // ========================================
 // MENU PERSONNALISÉ GOOGLE SHEETS
@@ -23,16 +23,18 @@ function onOpen() {
 function afficherAPropos() {
   const message = `🏭 GÉNÉRATEUR D'ÉTIQUETTES DUHALDE
 
-Version: 1.0
+Version: 2.0.0
 Développé pour: 360SmartConnect
 
 Fonctionnalités:
 ✅ Génération automatique d'étiquettes AGIPA 119013
+✅ Support de templates Google Docs et Google Slides
 ✅ Support 4 séries: ENVELOPPE, TOIT, DALLE, TEST
 ✅ Export PDF prêt à imprimer
-✅ Sauvegarde dans le même dossier que le template
+✅ Sauvegarde dans le dossier du template ou un dossier spécifié
+✅ Message de succès interactif avec liens directs
 
-Support: Vérifiez que l'ID du template est correct dans le script.`;
+Support: Vérifiez la configuration dans votre Google Sheet (ID du template, type, ID du dossier de destination).`;
 
   SpreadsheetApp.getUi().alert(message);
 }
@@ -474,6 +476,40 @@ function _test_generation_doc() {
   } catch (error) {
     console.error("❌ ERREUR LORS DU TEST GÉNÉRATION DOCS:", error.toString(), error.stack);
     SpreadsheetApp.getUi().alert(`❌ Erreur lors du test de génération Docs:\n\n${error.toString()}`);
+  }
+}
+
+/**
+ * Fonction de test pour la génération d'étiquettes depuis un template Google Slides.
+ * REMPLACEZ 'ID_VOTRE_TEMPLATE_SLIDE_ICI' par un ID de template Google Slide valide.
+ * Cette fonction peut être exécutée directement depuis l'éditeur Apps Script.
+ */
+function _test_generation_slide() {
+  console.log("=== DÉBUT TEST GÉNÉRATION SLIDES ===");
+  try {
+    const parametresTest = {
+      serie: "TEST_SLIDE",
+      numeroDebut: 201,
+      nbPages: 3,
+      templateId: "1_wP3-TRtIJz5r6ndnqHlPAQng4hEmXUmwe6tDQLew7k", // ⚠️ REMPLACEZ PAR UN VRAI ID DE TEMPLATE SLIDE
+      nomTemplate: "Template Test Slide",
+      typeTemplate: "Google Slide",
+      dossierId: null // Mettre un ID de dossier ici pour tester, ou laisser null/vide pour utiliser le dossier du template
+    };
+
+    if (parametresTest.templateId === "ID_VOTRE_TEMPLATE_SLIDE_ICI") {
+      console.warn("⚠️ ATTENTION: Veuillez remplacer 'ID_VOTRE_TEMPLATE_SLIDE_ICI' par un ID de template Google Slide valide dans la fonction _test_generation_slide().");
+      SpreadsheetApp.getUi().alert("⚠️ Test non exécuté : Veuillez configurer un ID de template Google Slide valide dans la fonction _test_generation_slide() du script.");
+      return;
+    }
+
+    console.log("Paramètres de test:", JSON.stringify(parametresTest, null, 2));
+    const resultat = _genererEtiquettesDepuisSlide(parametresTest);
+    console.log("Résultat de la génération (Slides):", JSON.stringify(resultat, null, 2));
+    console.log("✅ TEST GÉNÉRATION SLIDES TERMINÉ AVEC SUCCÈS ===");
+  } catch (error) {
+    console.error("❌ ERREUR LORS DU TEST GÉNÉRATION SLIDES:", error.toString(), error.stack);
+    SpreadsheetApp.getUi().alert(`❌ Erreur lors du test de génération Slides:\n\n${error.toString()}`);
   }
 }
 
