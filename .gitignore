@@ -6,7 +6,3 @@ node_modules/
 npm-debug.log
 
 # Fichiers de documentation et de plan (HTML et Markdown)
-PLAN.html
-README.html
-PLAN.md
-README.md
