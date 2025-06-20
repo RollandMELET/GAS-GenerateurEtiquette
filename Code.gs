@@ -1,8 +1,8 @@
 <!-- START OF FILE: Code.gs -->
-// Version: 1.2.1
-// Date: 2025-06-20 14:50
+// Version: 1.2.5
+// Date: 2025-06-20 21:15 
 // Author: Rolland MELET & AI Senior Coder
-// Description: Ajout de la série 'TEST' à des fins de développement et de test.
+// Description: Ajout de la possibilité de spécifier un dossier de destination pour les PDF générés (cellule B10).
 
 // ========================================
 // MENU PERSONNALISÉ GOOGLE SHEETS
@@ -54,6 +54,7 @@ function genererEtiquettes() {
     const nomTemplate = sheet.getRange('B5').getValue().toString().trim(); // Nouveau: Nom du template
     const templateId = sheet.getRange('B8').getValue().toString().trim();
     const typeTemplate = sheet.getRange('B9').getValue().toString().trim(); // Nouveau: Type de template
+    const dossierId = sheet.getRange('B10').getValue().toString().trim(); // Nouveau: ID du dossier de destination
     
     // 2. Validation
     if (!['ENVELOPPE', 'TOIT', 'DALLE', 'TEST'].includes(serie)) {
@@ -79,10 +80,11 @@ function genererEtiquettes() {
       nbPages: nbPages,
       templateId: templateId,
       nomTemplate: nomTemplate, // Ajout du nom du template aux paramètres
-      typeTemplate: typeTemplate // Ajout du type de template aux paramètres
+      typeTemplate: typeTemplate, // Ajout du type de template aux paramètres
+      dossierId: dossierId // Ajout de l'ID du dossier de destination
     };
     
-    console.log(`Paramètres: série=${parametres.serie}, numeroDebut=${parametres.numeroDebut}, nbPages=${parametres.nbPages}, nomTemplate=${parametres.nomTemplate}, typeTemplate=${parametres.typeTemplate}, templateId=${parametres.templateId}`);
+    console.log(`Paramètres: série=${parametres.serie}, numeroDebut=${parametres.numeroDebut}, nbPages=${parametres.nbPages}, nomTemplate=${parametres.nomTemplate}, typeTemplate=${parametres.typeTemplate}, templateId=${parametres.templateId}, dossierId=${parametres.dossierId}`);
 
     let fichiersGeneres;
     if (parametres.typeTemplate === 'Google Doc') {
@@ -129,7 +131,7 @@ function _genererEtiquettesDepuisDoc(parametres) {
   const dateFormatee = formatDateFrancais(maintenant);
   console.log(`Date: ${dateFormatee}`);
     
-  const dossier = creerDossierSiNecessaire(parametres.templateId);
+  const dossier = creerDossierSiNecessaire(parametres);
   
   console.log("--- Création du document multi-pages ---");
   
@@ -184,12 +186,43 @@ function _genererEtiquettesDepuisDoc(parametres) {
   docFinal.setName(nomFichier + '_temp');
   docFinal.saveAndClose();
   
-  console.log("Conversion en PDF...");
-  const pdfBlob = documentsPages[0].getAs('application/pdf');
-  pdfBlob.setName(nomFichier + '.pdf');
-  const pdfFile = dossier.createFile(pdfBlob);
-  console.log(`PDF multi-pages créé: ${pdfFile.getUrl()}`);
-  
+  const finalFileId = docFinal.getId(); // Obtenir l'ID avant la boucle de tentatives
+  let pdfBlob;
+  let pdfFile;
+  const MAX_PDF_RETRIES = 7; // Augmentation du nombre de tentatives
+  const PDF_RETRY_INITIAL_DELAY_MS = 10000; // Délai initial avant la première tentative (10 secondes)
+  const PDF_RETRY_SUBSEQUENT_DELAY_MS = 10000; // Délai entre les tentatives suivantes (10 secondes)
+
+  console.log(`Attente de ${PDF_RETRY_INITIAL_DELAY_MS / 1000} secondes avant la première tentative de conversion PDF du fichier ID: ${finalFileId}...`);
+  Utilities.sleep(PDF_RETRY_INITIAL_DELAY_MS); // Pause initiale plus longue après saveAndClose
+
+  for (let attempt = 1; attempt <= MAX_PDF_RETRIES; attempt++) {
+    try {
+      // Re-récupérer l'objet fichier à chaque tentative pour avoir la référence la plus fraîche
+      const fileToConvert = DriveApp.getFileById(finalFileId);
+      console.log(`Conversion en PDF (tentative ${attempt}/${MAX_PDF_RETRIES})...`);
+      pdfBlob = fileToConvert.getAs('application/pdf');
+      pdfBlob.setName(nomFichier + '.pdf');
+      pdfFile = dossier.createFile(pdfBlob);
+      console.log(`PDF multi-pages créé: ${pdfFile.getUrl()}`);
+      break; // Si succès, sortir de la boucle
+    } catch (e) {
+      console.warn(`Erreur lors de la tentative ${attempt} de conversion PDF: ${e.toString()}`);
+      // Vérifier spécifiquement le message d'erreur et si d'autres tentatives sont possibles
+      if (e.message && e.message.includes("Service unavailable") && attempt < MAX_PDF_RETRIES) { // Vérifier "Service unavailable" plus généralement
+        console.log(`Nouvel essai de conversion PDF dans ${PDF_RETRY_SUBSEQUENT_DELAY_MS / 1000} secondes...`);
+        Utilities.sleep(PDF_RETRY_SUBSEQUENT_DELAY_MS);
+      } else {
+        console.error("Échec final de la conversion PDF après plusieurs tentatives ou erreur non récupérable.");
+        // Loguer plus d'informations si possible
+        console.error(`Détails du fichier avant échec: ID=${finalFileId}, Nom (temporaire)=${docFinal.getName()}`); // docFinal pourrait ne plus être accessible ici, mais l'ID est sûr.
+        throw e; // Relancer l'erreur si ce n'est pas une erreur de service récupérable ou si c'est la dernière tentative
+      }
+    }
+  }
+  if (!pdfFile) { // Vérification supplémentaire au cas où la boucle se terminerait sans succès ni erreur relancée
+    throw new Error("Impossible de générer le fichier PDF après " + MAX_PDF_RETRIES + " tentatives.");
+  }
   console.log("Suppression des documents temporaires...");
   documentsPages.forEach(doc => {
     DriveApp.getFileById(doc.getId()).setTrashed(true);
@@ -211,7 +244,7 @@ function _genererEtiquettesDepuisSlide(parametres) {
   const dateFormatee = formatDateFrancais(maintenant);
   console.log(`Date: ${dateFormatee}`);
   
-  const dossier = creerDossierSiNecessaire(parametres.templateId);
+  const dossier = creerDossierSiNecessaire(parametres);
   
   const premierNum = formatNumero(parametres.numeroDebut);
   const dernierNum = formatNumero(parametres.numeroDebut + (parametres.nbPages * 5) - 1);
@@ -284,17 +317,29 @@ function formatDateFrancais(date) {
   return `${jour}/${mois}/${annee}`;
 }
 
-function creerDossierSiNecessaire(templateId) {
-  const templateFile = DriveApp.getFileById(templateId);
-  const dossiersParents = templateFile.getParents();
-  
-  if (dossiersParents.hasNext()) {
-    const dossierParent = dossiersParents.next();
-    console.log(`Dossier de destination: ${dossierParent.getName()}`);
-    return dossierParent;
+function creerDossierSiNecessaire(parametres) {
+  if (parametres.dossierId) {
+    try {
+      const dossier = DriveApp.getFolderById(parametres.dossierId);
+      console.log(`Dossier de destination spécifié: ${dossier.getName()}`);
+      return dossier;
+    } catch (e) {
+      console.error(`ID du dossier de destination invalide ou accès refusé: ${parametres.dossierId}`);
+      throw new Error(`L'ID du dossier de destination en B10 est invalide ou vous n'y avez pas accès.`);
+    }
   } else {
-    console.log("Template dans la racine du Drive. Utilisation de la racine.");
-    return DriveApp.getRootFolder();
+    // Comportement par défaut : utiliser le dossier du template
+    console.log("Aucun dossier de destination spécifié, déduction à partir du template...");
+    const templateFile = DriveApp.getFileById(parametres.templateId);
+    const dossiersParents = templateFile.getParents();
+    if (dossiersParents.hasNext()) {
+      const dossierParent = dossiersParents.next();
+      console.log(`Dossier de destination déduit du template: ${dossierParent.getName()}`);
+      return dossierParent;
+    } else {
+      console.log("Template dans la racine du Drive. Utilisation de la racine.");
+      return DriveApp.getRootFolder();
+    }
   }
 }
 
@@ -304,6 +349,7 @@ function testerConfiguration() {
     const sheet = SpreadsheetApp.getActiveSheet();
     const templateId = sheet.getRange('B8').getValue().toString().trim();
     const typeTemplate = sheet.getRange('B9').getValue().toString().trim();
+    const dossierId = sheet.getRange('B10').getValue().toString().trim(); // Nouveau
 
     if (!templateId) {
       throw new Error('ID du template manquant dans la cellule B8');
@@ -313,6 +359,9 @@ function testerConfiguration() {
     }
 
     let templateFile;
+    let alertMessage = '✅ Configuration OK.';
+
+    // Test du template
     if (typeTemplate === 'Google Doc') {
       templateFile = DriveApp.getFileById(templateId);
       DocumentApp.openById(templateId); // Tente d'ouvrir pour vérifier l'accès et le type
@@ -324,7 +373,19 @@ function testerConfiguration() {
     } else {
       throw new Error('Type de template invalide en B9. Doit être "Google Doc" ou "Google Slide".');
     }
-    SpreadsheetApp.getUi().alert(`✅ Configuration OK.\nType: ${typeTemplate}\nTemplate: ${templateFile.getName()}\nID: ${templateId}\nLe script peut accéder au template.`);
+    alertMessage += `\nType: ${typeTemplate}\nTemplate: ${templateFile.getName()}\nID: ${templateId}`;
+
+    // Test du dossier de destination (si fourni)
+    if (dossierId) {
+      const dossierDestination = DriveApp.getFolderById(dossierId);
+      console.log(`Dossier de destination trouvé: ${dossierDestination.getName()}`);
+      alertMessage += `\nDossier Destination: ${dossierDestination.getName()}`;
+    } else {
+      alertMessage += `\n\nDossier Destination: (dossier du template sera utilisé)`;
+    }
+
+    alertMessage += `\n\nLe script peut accéder à tous les éléments.`;
+    SpreadsheetApp.getUi().alert(alertMessage);
   } catch (error) {
     console.error("❌ Erreur de configuration:", error.toString());
     SpreadsheetApp.getUi().alert(`❌ Problème détecté:\n\n${error.toString()}`);
@@ -363,7 +424,8 @@ function _test_generation_doc() {
       nbPages: 2,
       templateId: "1U5QmMzr2Q0Sf4KVOnLjA1FdK2S4Y7WnV-O77H6xx6vM", // ⚠️ REMPLACEZ PAR UN VRAI ID DE TEMPLATE DOC
       nomTemplate: "Template Test Doc",
-      typeTemplate: "Google Doc" // Important pour la cohérence, même si _genererEtiquettesDepuisDoc ne l'utilise pas directement
+      typeTemplate: "Google Doc", // Important pour la cohérence
+      dossierId: null // Mettre un ID de dossier ici pour tester, ou laisser null/vide pour utiliser le dossier du template
     };
 
     if (parametresTest.templateId === "ID_VOTRE_TEMPLATE_DOC_ICI") {
