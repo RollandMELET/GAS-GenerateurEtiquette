@@ -345,4 +345,41 @@ function creerTemplateExemple() {
   SpreadsheetApp.getUi().alert(`Template exemple créé:\n\n${url}`);
 }
 
+// ========================================
+// FONCTIONS DE TEST INTERNES (POUR DÉVELOPPEMENT)
+// ========================================
+
+/**
+ * Fonction de test pour la génération d'étiquettes depuis un template Google Docs.
+ * REMPLACEZ 'ID_VOTRE_TEMPLATE_DOC_ICI' par un ID de template Google Doc valide.
+ * Cette fonction peut être exécutée directement depuis l'éditeur Apps Script.
+ */
+function _test_generation_doc() {
+  console.log("=== DÉBUT TEST GÉNÉRATION DOCS ===");
+  try {
+    const parametresTest = {
+      serie: "TEST_DOC",
+      numeroDebut: 101,
+      nbPages: 2,
+      templateId: "1U5QmMzr2Q0Sf4KVOnLjA1FdK2S4Y7WnV-O77H6xx6vM", // ⚠️ REMPLACEZ PAR UN VRAI ID DE TEMPLATE DOC
+      nomTemplate: "Template Test Doc",
+      typeTemplate: "Google Doc" // Important pour la cohérence, même si _genererEtiquettesDepuisDoc ne l'utilise pas directement
+    };
+
+    if (parametresTest.templateId === "ID_VOTRE_TEMPLATE_DOC_ICI") {
+      console.warn("⚠️ ATTENTION: Veuillez remplacer 'ID_VOTRE_TEMPLATE_DOC_ICI' par un ID de template Google Doc valide dans la fonction _test_generation_doc().");
+      SpreadsheetApp.getUi().alert("⚠️ Test non exécuté : Veuillez configurer un ID de template Google Doc valide dans la fonction _test_generation_doc() du script.");
+      return;
+    }
+
+    console.log("Paramètres de test:", JSON.stringify(parametresTest, null, 2));
+    const resultat = _genererEtiquettesDepuisDoc(parametresTest);
+    console.log("Résultat de la génération (Docs):", JSON.stringify(resultat, null, 2));
+    console.log("✅ TEST GÉNÉRATION DOCS TERMINÉ AVEC SUCCÈS ===");
+  } catch (error) {
+    console.error("❌ ERREUR LORS DU TEST GÉNÉRATION DOCS:", error.toString(), error.stack);
+    SpreadsheetApp.getUi().alert(`❌ Erreur lors du test de génération Docs:\n\n${error.toString()}`);
+  }
+}
+
 <!-- END OF FILE: Code.gs -->
