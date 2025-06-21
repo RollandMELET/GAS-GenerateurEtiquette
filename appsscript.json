@@ -1,6 +1,14 @@
 {
   "timeZone": "Europe/Paris",
   "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "Api360sc",
+        "version": "0",
+        "libraryId": "142FpeFN1CGptXBMCIeRUSYLiDXAr_xrOch8E7sMmxqyAe3E6hiCHfcxn",
+        "developmentMode": true
+      }
+    ]
   },
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8"
