@@ -1,9 +1,9 @@
 // <!-- START OF FILE: Utils.gs -->
 // FILENAME: Utils.gs
-// Version: 1.0.0
+// Version: 1.1.0
 // Date: 2025-06-21 18:34
 // Author: Rolland MELET & AI Senior Coder
-// Description: Fonctions utilitaires génériques pour le formatage et la gestion des fichiers/dossiers.
+// Description: Ajout d'une fonction de formatage date-heure pour les noms de fichiers.
 
 // ========================================
 // FONCTIONS UTILITAIRES
@@ -18,6 +18,21 @@ function formatDateFrancais(date) {
   const mois = (date.getMonth() + 1).toString().padStart(2, '0');
   const annee = date.getFullYear();
   return `${jour}/${mois}/${annee}`;
+}
+
+/**
+ * [NOUVEAU] Formate une date en chaîne AAAA-MM-JJ_HH-mm-ss pour les noms de fichiers.
+ * @param {Date} date - L'objet Date à formater.
+ * @returns {string} La date formatée.
+ */
+function formatDateTimePourNomFichier(date) {
+  const annee = date.getFullYear();
+  const mois = (date.getMonth() + 1).toString().padStart(2, '0');
+  const jour = date.getDate().toString().padStart(2, '0');
+  const heure = date.getHours().toString().padStart(2, '0');
+  const minute = date.getMinutes().toString().padStart(2, '0');
+  const seconde = date.getSeconds().toString().padStart(2, '0');
+  return `${annee}-${mois}-${jour}_${heure}-${minute}-${seconde}`;
 }
 
 function creerDossierSiNecessaire(parametres) {
