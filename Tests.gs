@@ -74,40 +74,29 @@ function _test_generation_slide() {
  * Très utile pour déboguer les problèmes de placeholders non trouvés.
  */
 function _diagnostiquerTemplateSlide() {
-  const ui = SpreadsheetApp.getUi();
+  // ----- CONFIGURATION DU TEST -----
+  // Action : Colle l'ID de ton template Slide ici.
+  const templateId = "1oYtWwxmv7DIQ_DHRt1TMiVyvEtqJYiXUjZW1UhLYtsU"; 
+  // -------------------------------
   
-  // 1. Demander l'ID du template à l'utilisateur
-  const response = ui.prompt(
-    'Diagnostic de Template Slide',
-    'Veuillez coller l\'ID de votre présentation Google Slides :',
-    ui.ButtonSet.OK_CANCEL
-  );
-
-  if (response.getSelectedButton() !== ui.Button.OK || !response.getResponseText()) {
-    ui.alert('Opération annulée.');
-    return;
-  }
-  
-  const templateId = response.getResponseText().trim();
   console.log(`Lancement du diagnostic pour le template ID: ${templateId}`);
 
   try {
-    // 2. Ouvrir la présentation et accéder à la première diapositive
+    // 1. Ouvrir la présentation et accéder à la première diapositive
     const presentation = SlidesApp.openById(templateId);
     const slide = presentation.getSlides()[0];
     
     if (!slide) {
       console.error("Aucune diapositive trouvée dans cette présentation.");
-      ui.alert("Aucune diapositive trouvée dans cette présentation.");
       return;
     }
 
-    // 3. Parcourir tous les éléments de la diapositive
+    // 2. Parcourir tous les éléments de la diapositive
     const pageElements = slide.getPageElements();
     console.log(`Analyse de ${pageElements.length} éléments sur la diapositive...`);
 
     if (pageElements.length === 0) {
-      ui.alert("La diapositive est vide !");
+      console.log("La diapositive est vide !");
       return;
     }
 
@@ -124,12 +113,14 @@ function _diagnostiquerTemplateSlide() {
     });
 
     console.log("--- Diagnostic Terminé ---");
-    ui.alert("Diagnostic terminé. Veuillez consulter les journaux (Afficher > Journaux) pour voir la liste des éléments.");
+    console.log("Veuillez analyser la liste des éléments ci-dessus.");
 
   } catch (e) {
     console.error(`Erreur lors du diagnostic: ${e.toString()}`);
-    ui.alert(`Erreur lors du diagnostic:\n\n${e.toString()}\n\nVérifiez que l'ID est correct et que vous avez accès au fichier.`);
   }
 }
+
+
+
 
 // <!-- END OF FILE: Tests.gs -->
