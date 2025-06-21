@@ -1,86 +1,37 @@
 <!-- START OF FILE: plan.md -->
 # FILENAME: plan.md
-# Version: 2.0.0
+# Version: 2.1.0
 # Date: 2025-06-20 22:40
 # Author: AI Senior Coder (pour Rolland MELET)
-# Description: Plan d'action détaillé V2 pour l'intégration de QR-Codes dynamiques. Inclut les prérequis, des exemples concrets, et le rappel des bonnes pratiques de développement.
+# Description: Mise à jour du plan d'action. L'étape 2.1 (ajout de la bibliothèque) est terminée. Précisions ajoutées pour les étapes suivantes.
 
 # Plan d'Action Détaillé : Intégration de QR-Codes Dynamiques
 
 ## 1. Objectif et Stratégie
-
-### 1.1. Objectif Final
-
-Modifier le projet `GAS-GenerateurEtiquette` pour qu'il puisse générer des étiquettes sur un template Google Slides contenant un QR-Code unique. Ce QR-Code correspondra à l'URL (`mcUrl`) d'un objet "Avatar" créé en temps réel sur la plateforme 360SmartConnect, rendant chaque étiquette physiquement et numériquement unique.
-
-### 1.2. Stratégie Technique Adoptée
-
-Nous utiliserons le projet `GAS-CreationObjet360sc-API` en tant que **Bibliothèque Google Apps Script**. Cette architecture est la plus propre et la plus maintenable :
-*   **Centralisation :** La logique de communication avec l'API 360sc reste dans un seul et unique projet.
-*   **Réutilisabilité :** La logique est disponible pour `GAS-GenerateurEtiquette` sans duplication de code.
-*   **Séparation des Rôles :** Chaque projet conserve sa spécialité.
-
-La configuration des templates (support QR-Code, environnement API, etc.) sera gérée dans une feuille dédiée `ListeTemplates` pour une flexibilité maximale.
-
----
+(... Contenu inchangé ...)
 
 ## 2. Prérequis Indispensables
-
-Avant de commencer le développement, il est impératif de s'assurer que les éléments suivants sont en place.
-
-*   **Accès aux Projets Google Apps Script :**
-    *   [ ] Accès en **éditeur** au projet `GAS-GenerateurEtiquette`.
-    *   [ ] Accès en **éditeur** au projet `GAS-CreationObjet360sc-API`.
-
-*   **Permissions de Déploiement :**
-    *   [ ] Vous devez avoir les droits suffisants sur votre compte Google pour créer des **déploiements** de type "Bibliothèque" depuis le projet `GAS-CreationObjet360sc-API`.
-
-*   **Configuration de l'Environnement API :**
-    *   [ ] Les **identifiants secrets** pour l'environnement 360sc que vous souhaitez cibler (ex: `TEST`) doivent être correctement configurés dans les `Propriétés du script` de `GAS-CreationObjet360sc-API`.
-        *   Clés requises : `API_USERNAME_TEST` et `API_PASSWORD_TEST`.
-        *   **Rappel :** La bibliothèque utilisera ses propres propriétés, et non celles du script qui l'appelle.
-
-*   **Connaissance des Bonnes Pratiques :**
-    *   [ ] Familiarité avec les règles définies dans le guide `BONNES_PRATIQUES_VERSIONNEMENT.md`, notamment le versionnement sémantique, le format des commits, et les en-têtes de fichiers.
-
----
+(... Contenu inchangé ...)
 
 ## 3. Plan d'Exécution par Phase
 
+---
+
 ### **Phase 1 : Publication du Projet `GAS-CreationObjet360sc-API` en Bibliothèque**
-
-*Objectif : Rendre la logique API disponible pour d'autres projets.*
-
-*   **Tâche 1.1 : Validation de la Configuration API**
-    *   Ouvrez le projet `GAS-CreationObjet360sc-API`.
-    *   **Action requise :** Exécutez la fonction `checkStoredApiCredentials` et vérifiez dans les journaux que les identifiants pour l'environnement `TEST` sont bien définis. S'ils ne le sont pas, configurez-les via les "Propriétés du Script".
-    *   **Raison :** La bibliothèque s'exécutera avec son propre contexte et ses propres secrets. Cette étape garantit qu'elle pourra s'authentifier correctement lorsqu'elle sera appelée.
-
-*   **Tâche 1.2 : Créer un Déploiement de type "Bibliothèque"**
-    1.  Dans l'éditeur Apps Script de `GAS-CreationObjet360sc-API`, cliquez sur le bouton bleu `Déployer` > `Nouveau déploiement`.
-    2.  Une nouvelle fenêtre s'ouvre. Cliquez sur l'icône engrenage (⚙️) "Sélectionner le type" et choisissez `Bibliothèque`.
-    3.  Dans le champ "Description", entrez un nom explicite. **Exemple :** `Bibliothèque API 360sc v1.0 - Création d'objets`.
-    4.  Cliquez sur `Déployer`.
-    5.  **Action CRUCIALE :** Dans la section "Détails de la bibliothèque", copiez et conservez précieusement l'`ID de script`. Il sera utilisé à la phase suivante.
+(... Contenu inchangé ...)
 
 ---
 
-### **Phase 2 : Configuration du Projet `GAS-GenerateurEtiquette`**
+### **Phase 2 : Préparation du Projet `GAS-GenerateurEtiquette`**
 
-*Objectif : Adapter le projet pour qu'il puisse consommer la bibliothèque et gérer les nouveaux templates.*
+*Objectif : Configurer le projet pour qu'il puisse utiliser la bibliothèque et la nouvelle gestion de templates.*
 
 *   **Tâche 2.1 : Inclure la Bibliothèque `Api360sc`**
-    1.  Ouvrez le projet `GAS-GenerateurEtiquette` dans l'éditeur Apps Script.
-    2.  Dans le menu de gauche, cliquez sur le `+` à côté de "Bibliothèques".
-    3.  Collez l'`ID de script` de la bibliothèque obtenu à l'étape 1.2, puis cliquez sur `Rechercher`.
-    4.  Laissez la version sur "HEAD (Développement)" pour le moment afin de bénéficier des dernières modifications sans avoir à redéployer la bibliothèque à chaque fois. Nous la figerons à une version stable plus tard.
-    5.  **Action requise :** Changez l'**Identifiant** par défaut pour `Api360sc`. C'est cet alias qui sera utilisé dans le code.
-        *   **Exemple d'appel :** `Api360sc.creerObjetUnique360sc(...)`.
-    6.  Cliquez sur `Ajouter`.
+    *   **STATUT :** ✅ **TERMINÉ**
 
-*   **Tâche 2.2 : Configurer la Feuille `ListeTemplates`**
-    *   **Action requise :** Dans votre classeur Google Sheets, créez une nouvelle feuille et nommez-la exactement `ListeTemplates`.
-    *   **Action requise :** Reproduisez la structure suivante dans cette feuille. Remplacez les IDs par les vôtres.
+*   **Tâche 2.2 : Créer et Configurer la feuille `ListeTemplates`**
+    *   **Action requise :** Dans le classeur Google Sheets, créer une nouvelle feuille et la nommer **exactement** `ListeTemplates`.
+    *   **Action requise :** Configurer les colonnes de cette feuille en suivant précisément ce modèle. Remplacez les `TemplateID` par les vôtres.
 
 | | A (Titre: `NomTemplate`) | B (`TemplateID`) | C (`TypeTemplate`) | D (`QR-Code`) | E (`EnvironnementAPI`) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -89,17 +40,23 @@ Avant de commencer le développement, il est impératif de s'assurer que les él
 | **3** | Étiquettes QR-Code (TEST) | `2Def...uvw_templateSlide` | Google Slide | Oui | TEST |
 | **4** | Étiquettes QR-Code (PROD) | `2Def...uvw_templateSlide` | Google Slide | Oui | PROD |
 
-*   **Tâche 2.3 : Adapter la Feuille de Configuration Principale**
-    *   Dans votre feuille principale (là où se trouvent les paramètres en colonne B) :
-    1.  **Configurer le menu déroulant :**
-        *   Sélectionnez la cellule `B5`.
-        *   Allez dans le menu `Données` > `Validation des données`.
-        *   Ajoutez une règle. Critères : `Liste à partir d'une plage`.
-        *   **Action requise :** Pour la plage, entrez la formule `=ListeTemplates!A2:A`.
-    2.  **Configurer les champs auto-remplis :**
-        *   Renommez les libellés en `A11` et `A12` pour plus de clarté.
-        *   **Action requise (Cellule B11) :** Collez la formule `=SIERREUR(RECHERCHEV(B5; ListeTemplates!A:E; 4; FAUX); "Non")`. Cette formule recherche le nom du template (de B5) dans la feuille `ListeTemplates` et retourne la valeur de la 4ème colonne ("QR-Code").
-        *   **Action requise (Cellule B12) :** Collez la formule `=SIERREUR(RECHERCHEV(B5; ListeTemplates!A:E; 5; FAUX); "")`. Cette formule fait de même pour la 5ème colonne ("EnvironnementAPI").
+*   **Tâche 2.3 : Adapter la feuille principale de configuration**
+    1.  **Menu déroulant :**
+        *   Sélectionner la cellule `B5`.
+        *   Aller dans le menu `Données` > `Validation des données` > `Ajouter une règle`.
+        *   Dans "Critères", choisir `Liste à partir d'une plage`.
+        *   **Action requise :** Pour la plage, entrer la formule `=ListeTemplates!A2:A`. Cliquer sur `OK`.
+    2.  **Formules de lookup :**
+        *   Renommer les libellés `A8` à `A12` pour correspondre à cette nouvelle structure :
+            *   `A8`: `ID du Template (Auto)`
+            *   `A9`: `Type de Template (Auto)`
+            *   `A10`: `ID Dossier Destination (Optionnel)`
+            *   `A11`: `Utilise QR-Code (Auto)`
+            *   `A12`: `Environnement API (Auto)`
+        *   **Action requise (Cellule B8) :** `=SIERREUR(RECHERCHEV(B5; ListeTemplates!A:E; 2; FAUX); "")`
+        *   **Action requise (Cellule B9) :** `=SIERREUR(RECHERCHEV(B5; ListeTemplates!A:E; 3; FAUX); "")`
+        *   **Action requise (Cellule B11) :** `=SIERREUR(RECHERCHEV(B5; ListeTemplates!A:E; 4; FAUX); "Non")`
+        *   **Action requise (Cellule B12) :** `=SIERREUR(RECHERCHEV(B5; ListeTemplates!A:E; 5; FAUX); "")`
 
 *   **Tâche 2.4 : Créer le Template Google Slides avec Placeholders**
     *   **Action requise :** Créez ou dupliquez une présentation Google Slides.
