@@ -16,10 +16,100 @@
  * @private
  */
 function _genererEtiquettesAvecQRCode(parametres) {
-  // Cette fonction sera implémentée à la prochaine étape.
-  // Pour l'instant, elle lève une erreur pour indiquer qu'elle n'est pas prête.
   console.log("-> Exécution de la logique de génération pour Google Slides avec QR-Codes...");
-  throw new Error("La fonction de génération de QR-Codes n'est pas encore implémentée.");
+
+  // 1. Initialisation
+  const maintenant = new Date();
+  const dateFormatee = formatDateFrancais(maintenant);
+  const dossier = creerDossierSiNecessaire(parametres);
+  const premierNum = formatNumero(parametres.numeroDebut);
+  const dernierNum = formatNumero(parametres.numeroDebut + (parametres.nbPages * 5) - 1);
+  const nomFichier = `Etiquettes_QR_${parametres.serie}_${premierNum}-${dernierNum}_${dateFormatee.replace(/\//g, '-')}`;
+
+  // 2. Création de la présentation temporaire à partir du template
+  const templateSlideFile = DriveApp.getFileById(parametres.templateId);
+  const presentationCopieFile = templateSlideFile.makeCopy(nomFichier + '_temp', dossier);
+  const presentation = SlidesApp.openById(presentationCopieFile.getId());
+
+  const slideTemplate = presentation.getSlides()[0];
+  if (!slideTemplate) throw new Error("Le template Google Slides ne contient aucune diapositive !");
+
+  // 3. Boucle sur le nombre de pages à générer
+  for (let page = 0; page < parametres.nbPages; page++) {
+    console.log(`--- Création page (diapositive) ${page + 1}/${parametres.nbPages} ---`);
+    const baseNum = parametres.numeroDebut + (page * 5);
+    
+    // Dupliquer la diapositive du template pour chaque nouvelle page
+    const nouvelleSlide = presentation.insertSlide(presentation.getSlides().length, slideTemplate);
+
+    // Remplacer les placeholders communs à la diapositive
+    nouvelleSlide.replaceAllText('{{SERIE}}', parametres.serie);
+    nouvelleSlide.replaceAllText('{{DateJour}}', dateFormatee);
+
+    // 4. Boucle sur les 5 étiquettes de la diapositive
+    for (let i = 1; i <= 5; i++) {
+      const numeroEtiquette = formatNumero(baseNum + i - 1);
+      console.log(`-- Traitement étiquette ${i}/5, Numéro: ${numeroEtiquette}`);
+      
+      // A. Remplacer le placeholder de numéro
+      nouvelleSlide.replaceAllText(`{{NUMERO${i}}}`, numeroEtiquette);
+      
+      // B. Créer l'objet via l'API et générer le QR-Code
+      const nomObjetBase = `${parametres.serie}-${numeroEtiquette}`;
+      const placeholderName = `QR_CODE_PLACEHOLDER_${i}`;
+      
+      try {
+        // APPEL À LA BIBLIOTHÈQUE
+        console.log(`Appel API pour créer l'objet: ${nomObjetBase} sur env: ${parametres.environnementApi}`);
+        const resultatApiString = Api360sc.creerObjetUnique360sc(nomObjetBase, parametres.environnementApi, "MOULE", "Autre");
+        const objetApi = JSON.parse(resultatApiString);
+
+        if (!objetApi.success || !objetApi.mcUrl) {
+          throw new Error(`Échec création objet API pour ${nomObjetBase}: ${objetApi.error || 'mcUrl manquante'}`);
+        }
+        console.log(`Objet créé avec succès. mcUrl: ${objetApi.mcUrl}`);
+
+        // Générer l'URL de l'image du QR-Code via l'API Google Charts
+        const qrCodeUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=150x150&chl=' + encodeURIComponent(objetApi.mcUrl);
+
+        // Trouver la forme placeholder par son titre
+        const shapePlaceholder = nouvelleSlide.getPageElements().find(el => 
+          el.getPageElementType() === SlidesApp.PageElementType.SHAPE && el.asShape().getTitle() === placeholderName
+        );
+
+        if (shapePlaceholder) {
+          // Insérer l'image du QR-Code aux mêmes dimensions et position, puis supprimer le placeholder
+          const left = shapePlaceholder.getLeft();
+          const top = shapePlaceholder.getTop();
+          const width = shapePlaceholder.getWidth();
+          const height = shapePlaceholder.getHeight();
+          
+          nouvelleSlide.insertImage(qrCodeUrl, left, top, width, height);
+          shapePlaceholder.remove();
+          console.log(`Placeholder ${placeholderName} remplacé par un QR-Code.`);
+        } else {
+          console.warn(`Avertissement: Placeholder de forme '${placeholderName}' non trouvé sur la diapositive.`);
+        }
+      } catch(e) {
+        console.error(`Erreur critique lors du traitement de l'étiquette ${numeroEtiquette}: ${e.toString()}`);
+        // En cas d'erreur API, on affiche un message d'erreur à la place du QR-Code pour ne pas bloquer toute la génération
+        const shapePlaceholder = nouvelleSlide.getPageElements().find(el => el.asShape() && el.asShape().getTitle() === placeholderName);
+        if(shapePlaceholder) shapePlaceholder.asShape().getText().setText(`ERREUR API\n${e.message.substring(0, 50)}...`);
+      }
+    }
+  }
+
+  // 5. Nettoyage et finalisation
+  presentation.getSlides()[0].remove();
+  presentation.saveAndClose();
+  
+  const pdfBlob = presentationCopieFile.getAs('application/pdf').setName(nomFichier + '.pdf');
+  const pdfFile = dossier.createFile(pdfBlob);
+  console.log(`PDF multi-pages avec QR-Codes créé: ${pdfFile.getUrl()}`);
+
+  presentationCopieFile.setTrashed(true);
+
+  return [{ url: pdfFile.getUrl(), nom: pdfFile.getName() }];
 }
 
 
@@ -65,8 +155,9 @@ function _genererEtiquettesDepuisDoc(parametres) {
     const bodySource = DocumentApp.openById(documentsPages[i].getId()).getBody();
     for (let j = 0; j < bodySource.getNumChildren(); j++) {
       const element = bodySource.getChild(j).copy();
-      if (element.getType() === DocumentApp.ElementType.TABLE) bodyFinal.appendTable(element);
-      else if (element.getType() === DocumentApp.ElementType.PARAGRAPH) bodyFinal.appendParagraph(element);
+      const type = element.getType();
+      if (type === DocumentApp.ElementType.TABLE) bodyFinal.appendTable(element);
+      else if (type === DocumentApp.ElementType.PARAGRAPH) bodyFinal.appendParagraph(element);
     }
   }
   
