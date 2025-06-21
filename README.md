@@ -96,6 +96,54 @@ La feuille principale sert de "panneau de contrôle" pour chaque génération.
     *   `QR_CODE_PLACEHOLDER_2`
     *   ... jusqu'à `QR_CODE_PLACEHOLDER_5`.
 
+    ### **Guide Détaillé des Placeholders**
+
+Le bon fonctionnement du script repose sur l'utilisation de **placeholders** (balises de remplacement) nommés de manière très précise. Suivez ce guide attentivement.
+
+#### **A. Placeholders de Texte**
+
+Ces placeholders fonctionnent dans les **Google Docs** et les **Google Slides**. Ils doivent être écrits exactement comme ci-dessous, entourés de doubles accolades.
+
+| Placeholder | Rôle |
+| :--- | :--- |
+| `{{SERIE}}` | Affiche le nom de la série (ex: "ENVELOPPE"). |
+| `{{DateJour}}` | Affiche la date de la génération (ex: "21/06/2025"). |
+| `{{NUMERO1}}` | Affiche le numéro formaté de la première étiquette. |
+| `{{NUMERO2}}` | Affiche le numéro de la deuxième étiquette. |
+| `{{NUMERO3}}` | Affiche le numéro de la troisième étiquette. |
+| `{{NUMERO4}}` | Affiche le numéro de la quatrième étiquette. |
+| `{{NUMERO5}}` | Affiche le numéro de la cinquième étiquette. |
+
+#### **B. Placeholders d'Image (pour QR-Codes)**
+
+Ces placeholders fonctionnent **uniquement dans les Google Slides** et ne sont pas du texte, mais des **formes géométriques nommées**.
+
+**Méthode de création (Impératif) :**
+
+1.  **Insérer une Forme :**
+    *   À l'endroit où le QR-Code doit apparaître, insérez une forme (ex: un carré) via le menu `Insertion` > `Forme` > `Formes` > `Rectangle`.
+    *   Dimensionnez et positionnez cette forme exactement comme vous souhaitez que le QR-Code final apparaisse.
+
+2.  **Nommer la Forme (Étape Cruciale) :**
+    *   Faites un **clic-droit** sur la forme que vous venez de créer.
+    *   Dans le menu, sélectionnez **`Texte alternatif...`**. Un panneau s'ouvre à droite.
+    *   Dépliez la section **`Options avancées`**.
+    *   Dans le champ **`Titre`**, entrez le nom exact du placeholder correspondant à l'étiquette. **Ce champ est le seul que le script utilise pour identifier la forme.**
+    *   *Bonne pratique :* Copiez la même valeur dans le champ `Description` pour l'accessibilité.
+
+**Noms des Placeholders d'Image à Utiliser :**
+
+| Placeholder (Nom du `Titre`) | Doit être utilisé pour l'étiquette... |
+| :--- | :--- |
+| `QR_CODE_PLACEHOLDER_1` | ... qui utilise `{{NUMERO1}}`. |
+| `QR_CODE_PLACEHOLDER_2` | ... qui utilise `{{NUMERO2}}`. |
+| `QR_CODE_PLACEHOLDER_3` | ... qui utilise `{{NUMERO3}}`. |
+| `QR_CODE_PLACEHOLDER_4` | ... qui utilise `{{NUMERO4}}`. |
+| `QR_CODE_PLACEHOLDER_5` | ... qui utilise `{{NUMERO5}}`. |
+
+> **⚠️ AVERTISSEMENT :** Une erreur de frappe, l'utilisation d'un tiret au lieu d'un underscore (`_`), ou le fait de mettre le nom dans le champ `Description` au lieu de `Titre` entraînera l'échec de l'insertion du QR-Code. La rigueur est essentielle.
+
+
 ## 📖 Utilisation
 Après avoir rechargé votre Google Sheet, un nouveau menu "🏭 DUHALDE ÉTIQUETTES" apparaît. Son utilisation reste inchangée. Le script s'adaptera automatiquement en fonction du template que vous avez sélectionné en `B5`.
 
